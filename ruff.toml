@@ -1,0 +1,33 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+    "TCH",   # flake8-type-checking
+    "RUF",   # ruff-specific
+]
+ignore = [
+    "E501",   # line length handled by formatter
+    "TC001",  # moving imports to TYPE_CHECKING breaks runtime
+    "TC002",
+    "TC003",
+    "RUF001", # ambiguous unicode chars are intentional (Portuguese text,
+              # curly-quote normalization tables)
+    "RUF002",
+    "RUF003",
+]
+
+[lint.isort]
+known-first-party = ["ethic_ai"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
