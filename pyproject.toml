@@ -1,7 +1,7 @@
 [project]
-name = "ethic-ai"
+name = "harmcheck"
 version = "0.1.0"
-description = "Compare harm dataset outputs across local LLMs"
+description = "Compare PT-BR harm-prompt responses across local LLMs (DADA-pt-br)"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.10",
@@ -12,14 +12,14 @@ dependencies = [
 ]
 
 [project.scripts]
-ethic = "ethic_ai.main:app"
+harmcheck = "harmcheck.main:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ethic_ai"]
+packages = ["src/harmcheck"]
 
 [dependency-groups]
 dev = [

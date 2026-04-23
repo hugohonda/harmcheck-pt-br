@@ -5,93 +5,115 @@ Research tool for comparing how small, locally-hosted LLMs respond to
 [DADA-pt-br](https://github.com/hugohonda/dada-pt-br) translated benchmarks
 (M-ALERT, ALERT, AgentHarm).
 
-Runs prompts across multiple Ollama models, streams every response to a
-JSON-Lines file, resumes transparently after a crash, and reclassifies the
-responses with an LLM-as-judge rubric (REFUSAL / UNSAFE / SAFE / OTHER).
-
 ---
 
-## Pipeline
+## Pipeline logic
+
+The tool does three things, one per command, and keeps them strictly
+separate because each has a very different cost profile:
 
 ```
-  dataset (pt-br, M-ALERT tower)  ──ethic run──▶  responses.jsonl
-                                                       │
-                                                       ▼
-                                                  ethic judge
-                                                       │
-                                                       ▼
-                                           responses.judged.jsonl
-                                                       │
-                                             ethic analyze / divergence
+  DADA dataset JSON                                  ┐
+      │                                              │
+      │  ┌── 02-evaluated MetricX sidecar ─────┐     │  1. GENERATE (slow)
+      │  │   drop translator-failure rows      │     │     for each target model,
+      ▼  ▼                                     ▼     │     one chat call per prompt,
+   load_prompts ─── stratified sample ─── per-row    │     append JSONL row + flush
+                                           prompt ───┘
+                                              │
+                                              ▼
+                                        responses.jsonl   ┐
+                                              │           │  2. JUDGE (fast-ish)
+                                              ▼           │     one classifier call
+                                         harmcheck judge  │     per row; appends
+                                              │           │     judge_label fields
+                                              ▼           │
+                                 responses.judged.jsonl   ┘
+                                              │
+                                              ▼           ┐
+                                     harmcheck analyze    │  3. ANALYZE (free)
+                                     harmcheck divergence │     pure stats over the
+                                              │           │     JSONL, no LLM calls
+                                              ▼           ┘
+                              per-model / per-category grids
+                              cross-model disagreement list
 ```
 
-Two independent passes. **Generation** is expensive (the LLM under test);
-**judgment** is separate so you can iterate on the rubric / judge model
-without re-running generation. Both passes stream to JSONL line-by-line and
-resume by skipping `(model, prompt_id)` pairs already in the output file.
+**Why one step per command:**
+- Generation is expensive (hours to days). Judgment is cheap (minutes).
+  Running them separately lets you iterate on the judge rubric or swap
+  the judge model without redoing generation.
+- Analysis is free and non-destructive: re-run `harmcheck analyze` any
+  time as more rows stream in, or after updating labels.
+- Every step writes **one JSON object per line** to an append-only file
+  and **flushes after each row**. Process crash = nothing lost.
+- Every step **resumes** by reading the output file and skipping
+  `(model, prompt_id)` pairs already present without error.
+
+## Filtering & sampling
+
+The DADA-pt-br `02-evaluated/` sidecar carries a **MetricX translation
+quality score** per row. `--min-quality-score 0.70` auto-discovers the
+sidecar next to your dataset and drops rows below the threshold — the
+bottom tail contains **translator failures** (the translator model
+complied with the harmful prompt instead of translating it), which would
+otherwise contaminate evaluation.
+
+`--sample-per-category N` does a deterministic stratified sample,
+important because the M-ALERT category distribution is heavily skewed
+(e.g. `crime_injury=1798` vs `hate_poor=101`) and uniform sampling biases
+aggregate rates.
 
 ## Install
 
 ```bash
-make install            # uv sync --all-groups
+make install    # uv sync --all-groups
 ```
 
-Python 3.12+. A running Ollama (`ollama serve`) with the models pulled.
+Python 3.12+, a running local Ollama, and the target models pulled.
 
-## The three commands you actually use
+**Recommended Ollama server config** (sudo, one-shot):
 
 ```bash
-# Discover which datasets are on disk (respects ETHIC_DATASETS_DIR /
-# ETHIC_TRANSLATED_DIR; defaults point at your DADA-pt-br checkout).
-uv run ethic datasets
-
-# 1. Generate responses (resumable, streams to JSONL).
-uv run ethic run <dataset.json> --sample-per-category 50 --num-parallel 4
-#   -> writes output/<timestamp>_<dataset>.jsonl
-
-# 2. Reclassify with an LLM-as-judge (re-runnable with a different
-#    --judge-model without redoing the expensive generations).
-uv run ethic judge <output/...jsonl> --judge-model qwen3.5:9b
-#   -> writes <same path>.judged.jsonl
-
-# 3. Analyze.
-uv run ethic analyze    <output/...judged.jsonl>
-uv run ethic divergence <output/...judged.jsonl>
+sudo mkdir -p /etc/systemd/system/ollama.service.d
+sudo tee /etc/systemd/system/ollama.service.d/override.conf >/dev/null <<'EOF'
+[Service]
+Environment="OLLAMA_NUM_PARALLEL=6"
+Environment="OLLAMA_FLASH_ATTENTION=1"
+EOF
+sudo systemctl daemon-reload && sudo systemctl restart ollama
 ```
 
-## Primary dataset
+Without these, Ollama auto-selects 1–4 concurrent slots based on VRAM and
+flash attention stays off. Together they give ~1.6× throughput on an
+8 GB-class GPU.
 
-This project targets the **high-quality pt-br** slice of M-ALERT, produced
-by the Tower translator in DADA-pt-br. The configured default for
-`ETHIC_TRANSLATED_DIR` points to that directory; `ethic datasets` lists
-what's available there.
+## Usage
 
-That Tower file has 14,763 prompts across 32 categories with `en` and
-`pt-br` side by side; runs use `pt-br` by default.
+```bash
+# What's on disk?
+uv run harmcheck datasets
+uv run harmcheck models
 
-The other translations (e.g. gemma3gaia) and the English raw datasets
-(ALERT, AgentHarm) still load through the same unified loader. Only the
-**default language** is fixed at `pt-br`; override with `--language en`
-if you need the English side.
+# 1. Generate  (resumable, streams to JSONL)
+uv run harmcheck run <dataset.json> \
+    --sample-per-category 200 \
+    --min-quality-score 0.70 \
+    --num-parallel 6
+#   -> output/<timestamp>_<dataset>.jsonl
 
-Category distribution is heavily skewed (crime_injury=1798 vs
-hate_poor=101). Always prefer **`--sample-per-category N`** to
-uniformly-comparable aggregate refusal / unsafe rates.
+# 2. Judge  (LLM-as-judge reclassification; re-runnable with any judge model)
+uv run harmcheck judge <output/...jsonl> --judge-model qwen3.5:9b
+#   -> <same path>.judged.jsonl
 
-## Why the two-pass design
+# 3. Analyze
+uv run harmcheck analyze    <output/...judged.jsonl>
+uv run harmcheck divergence <output/...judged.jsonl>
+```
 
-**Generation is expensive, labelling is cheap.** A full M-ALERT pt-br run
-is tens of thousands of LLM calls at several seconds each. Labels (the
-scientifically load-bearing part) are one short classifier call per row —
-seconds. Keeping them separate lets you:
+## Output schema
 
-- iterate on the judge rubric without redoing generation,
-- swap the judge model entirely and diff results,
-- keep the raw responses as the canonical record.
-
-## Output format
-
-**`responses.jsonl`** — one JSON object per line, one per `(model, prompt)`:
+**`responses.jsonl`** — one line per `(model, prompt)`:
 
 ```json
 {
@@ -109,99 +131,61 @@ seconds. Keeping them separate lets you:
 }
 ```
 
-**`responses.judged.jsonl`** — same fields plus:
+**`responses.judged.jsonl`** — same fields plus `judge_model`,
+`judge_label` ∈ {`REFUSAL`, `UNSAFE`, `SAFE`, `OTHER`}, `judge_raw`,
+`judge_elapsed`, `judge_error`.
 
-```json
-{
-  "...": "...",
-  "judge_model": "qwen3.5:9b",
-  "judge_label": "REFUSAL",
-  "judge_raw": "REFUSAL",
-  "judge_elapsed": 1.05,
-  "judge_error": null
-}
-```
+Errors live in `error` / `judge_error` with the substantive field empty
+so they're easy to filter out. On resume both passes drop error rows
+and retry them.
 
-Errors are stored in `error` / `judge_error` with the substantive field
-empty — easy to filter, easy to retry (both passes drop error rows on
-resume).
+## Two labels: `refused` and `judge_label`
 
-## Why two labels (`refused` + `judge_label`)
+- **`refused`** is a **heuristic** (substring check on the response head,
+  PT and EN markers, curly-quote normalized). Fast, cheap, deterministic,
+  and intentionally **not** research-grade: brittle on rebuttals, drifts
+  across model-family phrasing, etc. Useful as a sanity cross-check.
+- **`judge_label`** is produced by an **LLM-as-judge** rubric pass using
+  any chat model via Ollama; this is the label to cite in the thesis.
+  `harmcheck analyze` uses it automatically when present and falls back
+  to the heuristic otherwise.
 
-- `refused` is a **heuristic** — a curated substring check on the
-  response head, useful as a fast coarse signal and a sanity check on
-  the judge. It is **not** research-grade. Documented pitfalls:
-  some rebuttals-of-hateful-premises were missed; disclaimers like
-  "as an AI..." are intentionally not flagged (they fire on non-refusals).
-  Curly apostrophes are normalized to ASCII before matching.
-- `judge_label` is the **LLM-as-judge rubric**, one of REFUSAL /
-  UNSAFE / SAFE / OTHER. This is the label you cite. `ethic analyze`
-  uses it if present and falls back to the heuristic otherwise.
+The judge call sends `"think": false` so reasoning-mode models (Qwen3)
+emit a label directly. Use a **different** judge model from any model
+under evaluation to avoid self-bias.
 
-Using a **different** judge from the model under evaluation is strongly
-preferred (avoids self-bias). `qwen3.5:9b` is the default judge, picked
-because it handles pt-br well and runs locally; change it with
-`--judge-model`.
+## Hardware & throughput notes
 
-## Analysis
+Built on **RTX 3060 Ti (8 GB VRAM) + i7-12700K + 62 GB RAM**. Three
+design consequences:
 
-`ethic analyze <file.jsonl>`:
+1. **Only one ~8 B Q4 model fits on the GPU at a time.** The runner
+   loops **model-major** (all prompts for model A, then B, …) so Ollama
+   does not evict/reload the model every prompt.
+2. **`keep_alive=30m`** sent per request keeps the model resident during
+   its pass; the next model triggers a natural eviction.
+3. **`--num-parallel N`** sends N concurrent requests per model. Requires
+   `OLLAMA_NUM_PARALLEL ≥ N` server-side or the extras just queue.
+   **Gemma4-8B spills to CPU** on this GPU (~9.6 GB on disk); expect
+   noticeably slower tokens/s for it.
 
-- total responses, errors, and refusal / UNSAFE / SAFE / OTHER counts
-- per-model: n, error %, label distribution, median response length,
-  median wall time, median tokens/s
-- **UNSAFE rate by model × category** grid — the headline research result
-- cross-model agreement: how often all models REFUSAL, any UNSAFE, or
-  labels disagree
-
-`ethic divergence <file.jsonl>` dumps concrete prompts where models split
-(on judge label when available, else on the heuristic) with short
-snippets side-by-side — the most informative rows for qualitative review.
-
-## Hardware & runtime
-
-Built on an RTX 3060 Ti (8 GB VRAM) + i7-12700K (20 threads) + 62 GB RAM.
-Decisions that govern throughput:
-
-1. **Only one ~8B Q4 model fits on the GPU at a time.** The runner loops
-   **model-major** (all prompts for model A, then model B, …) so Ollama
-   does not evict-and-reload every prompt. This is the biggest single
-   throughput win over a naive "loop prompts × loop models" design.
-
-2. **`keep_alive=30m`** is sent on every request. Within a model's pass
-   weights stay resident; when we move to the next model Ollama unloads
-   automatically.
-
-3. **`--num-parallel N`** sends N concurrent requests per model. Ollama
-   only actually parallelizes them if the server is started with
-   `OLLAMA_NUM_PARALLEL≥N`; otherwise it queues harmlessly. For an 8B Q4
-   model with ≤1 k context, `--num-parallel 4` fits comfortably in 8 GB.
-   Gemma4-8B (~9.6 GB on disk, Q4) spills to CPU on this GPU regardless —
-   expect noticeably lower tokens/s.
-
-Recommended Ollama server config:
-
-```bash
-OLLAMA_NUM_PARALLEL=4 OLLAMA_KEEP_ALIVE=30m ollama serve
-```
-
-Rough runtime for a full M-ALERT pt-br pass (14,763 prompts × 3 target
-models) on this hardware with `--num-parallel 4`: **several hours to a
-day** depending on model tokens/s. The JSONL streaming + resume makes an
-interruption cheap.
+Generation also sends `"think": false` so Qwen3 emits plain chat content
+(matches llama3.1 / gemma4 behaviour and measures the surface chat reply).
 
 ## Configuration
 
-All settings overridable via env (`ETHIC_*`) or CLI flag:
+Everything overridable via env (`HARMCHECK_*` — actually `ETHIC_*` while
+we keep the legacy prefix; rename pending) or CLI flag.
 
 | Setting            | Env                          | Default                                |
 | ------------------ | ---------------------------- | -------------------------------------- |
 | Ollama host        | `ETHIC_OLLAMA_HOST`          | `http://localhost:11434`               |
-| Target models      | `-m/--model` (repeat)        | `gemma4:e4b, qwen3.5:9b, llama3.1:8b`  |
+| Target models      | `-m/--model`                 | `gemma4:e4b, qwen3.5:9b, llama3.1:8b`  |
 | Judge model        | `ETHIC_JUDGE_MODEL`          | `qwen3.5:9b`                           |
 | Default language   | `ETHIC_DEFAULT_LANGUAGE`     | `pt-br`                                |
-| Datasets dir       | `ETHIC_DATASETS_DIR`         | `<DADA-pt-br>/datasets`                |
-| Translated dir     | `ETHIC_TRANSLATED_DIR`       | `<DADA-pt-br>/output/01-translated`    |
+| Datasets dir       | `ETHIC_DATASETS_DIR`         | `<DADA>/datasets`                      |
+| Translated dir     | `ETHIC_TRANSLATED_DIR`       | `<DADA>/output/01-translated`          |
+| Evaluated dir      | `ETHIC_EVALUATED_DIR`        | `<DADA>/output/02-evaluated`           |
 | Output dir         | `ETHIC_OUTPUT_DIR`           | `output/`                              |
 | Parallel / model   | `--num-parallel`             | `4`                                    |
 | Temperature        | `ETHIC_TEMPERATURE`          | `0.1`                                  |
@@ -209,32 +193,22 @@ All settings overridable via env (`ETHIC_*`) or CLI flag:
 | Request timeout    | `ETHIC_REQUEST_TIMEOUT`      | `300` s                                |
 | Keep-alive         | `ETHIC_KEEP_ALIVE`           | `30m`                                  |
 
-## Commands
-
-| Command              | Purpose                                                       |
-| -------------------- | ------------------------------------------------------------- |
-| `ethic run`          | Generate responses; stream to JSONL; resumable                |
-| `ethic judge`        | Add LLM-as-judge labels to an existing JSONL                  |
-| `ethic analyze`      | Aggregate stats (uses `judge_label` when present)             |
-| `ethic divergence`   | Show prompts where models disagree                            |
-| `ethic datasets`     | List DADA datasets found on disk                              |
-| `ethic models`       | Print configured target models                                |
-
 ## Project layout
 
 ```
-src/ethic_ai/
+src/harmcheck/
   config.py     Pydantic settings
   schemas.py    HarmPrompt, ModelResponse, JUDGE_LABELS
-  datasets.py   Unified loader for all DADA shapes + stratified sampling
-  jsonl.py      Shared JSONL I/O: line streaming + async bounded-concurrency writer
-  runner.py     Generation: async HTTP to Ollama, heuristic refusal flag
-  judge.py      LLM-as-judge rubric reclassifier
-  analyze.py    Stats + divergence inspection (heuristic or judge)
+  datasets.py   Unified loader + stratified sampling + quality filter
+  jsonl.py      JSONL streaming: iter_jsonl + async bounded-concurrency writer
+  runner.py     Generation pass (Ollama chat, heuristic refusal flag)
+  judge.py     LLM-as-judge reclassification pass
+  analyze.py    Aggregate stats + divergence inspection
   main.py       Typer CLI
 ```
 
-No base classes, no registries, no factories. Seven small modules.
+No base classes, no registries, no factories. Seven small modules,
+~900 LoC total.
 
 ## Development
 

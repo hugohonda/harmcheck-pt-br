@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DADA_DATASETS_DIR = Path.home() / "Developer" / "mestrado" / "dada-pt-br" / "datasets"
 DADA_TRANSLATED_DIR = Path.home() / "Developer" / "mestrado" / "dada-pt-br" / "output" / "01-translated"
+DADA_EVALUATED_DIR = Path.home() / "Developer" / "mestrado" / "dada-pt-br" / "output" / "02-evaluated"
 
 
 class Settings(BaseSettings):
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     models: list[str] = Field(default=["gemma4:e4b", "qwen3.5:9b", "llama3.1:8b"])
     datasets_dir: Path = Field(default=DADA_DATASETS_DIR)
     translated_dir: Path = Field(default=DADA_TRANSLATED_DIR)
+    evaluated_dir: Path = Field(default=DADA_EVALUATED_DIR)
     output_dir: Path = Field(default=Path("output"))
 
     temperature: float = Field(default=0.1)

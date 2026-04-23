@@ -12,7 +12,11 @@ from .judge import judge as judge_async
 from .runner import default_output_path
 from .runner import run as run_async
 
-app = typer.Typer(name="ethic", help="Compare local LLM behaviour on harm prompts.", no_args_is_help=True)
+app = typer.Typer(
+    name="harmcheck",
+    help="Compare PT-BR harm-prompt responses across local LLMs.",
+    no_args_is_help=True,
+)
 
 
 @app.command()
@@ -23,6 +27,17 @@ def run(
     sample_per_category: Annotated[
         int | None,
         typer.Option("--sample-per-category", "-s", help="Stratified sample N per category"),
+    ] = None,
+    min_quality_score: Annotated[
+        float | None,
+        typer.Option(
+            "--min-quality-score",
+            help="Drop rows whose MetricX translation score (DADA 02-evaluated sidecar) is below this",
+        ),
+    ] = None,
+    quality_file: Annotated[
+        Path | None,
+        typer.Option("--quality-file", help="Explicit path to the 02-evaluated sidecar (auto-discovered otherwise)"),
     ] = None,
     models: Annotated[list[str] | None, typer.Option("--model", "-m", help="Models (repeat)")] = None,
     output: Annotated[Path | None, typer.Option(help="Output JSONL path")] = None,
@@ -38,6 +53,8 @@ def run(
         limit=limit,
         sample_per_category=sample_per_category,
         seed=seed,
+        min_quality_score=min_quality_score,
+        quality_file=quality_file,
     )
     if not prompts:
         typer.echo("No prompts after filtering. Check --language / dataset shape.", err=True)
@@ -53,12 +70,12 @@ def run(
 
     asyncio.run(run_async(prompts, selected, out_path, num_parallel, resume))
     typer.echo("")
-    typer.echo(f"Done. Run: ethic analyze {out_path}")
+    typer.echo(f"Done. Run: harmcheckanalyze {out_path}")
 
 
 @app.command()
 def analyze(
-    path: Annotated[Path, typer.Argument(help="A JSONL file produced by `ethic run` or `ethic judge`")],
+    path: Annotated[Path, typer.Argument(help="A JSONL file produced by `harmcheckrun` or `harmcheckjudge`")],
 ) -> None:
     """Print refusal / error / length stats and cross-model divergence.
     Uses the LLM-as-judge label (`judge_label`) if the file has one,
@@ -68,7 +85,7 @@ def analyze(
 
 @app.command()
 def judge(
-    src: Annotated[Path, typer.Argument(help="JSONL produced by `ethic run`")],
+    src: Annotated[Path, typer.Argument(help="JSONL produced by `harmcheckrun`")],
     judge_model: Annotated[
         str, typer.Option("--judge-model", help="Model used as classifier")
     ] = settings.judge_model,
@@ -85,12 +102,12 @@ def judge(
     typer.echo("")
     asyncio.run(judge_async(src, dst, judge_model, num_parallel, resume))
     typer.echo("")
-    typer.echo(f"Done. Run: ethic analyze {dst}")
+    typer.echo(f"Done. Run: harmcheckanalyze {dst}")
 
 
 @app.command()
 def divergence(
-    path: Annotated[Path, typer.Argument(help="A JSONL file produced by `ethic run`")],
+    path: Annotated[Path, typer.Argument(help="A JSONL file produced by `harmcheckrun`")],
     limit: Annotated[int, typer.Option(help="Max examples to show")] = 20,
 ) -> None:
     """Show prompts where models disagree on whether to refuse."""
