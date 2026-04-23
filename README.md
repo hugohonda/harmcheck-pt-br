@@ -1,4 +1,4 @@
-# Harm Check - PT-BR
+# Harm Check PT-BR
 
 Research tool for comparing how small, locally-hosted LLMs respond to
 **Portuguese** harm / safety / bias prompts from the
@@ -41,42 +41,38 @@ Python 3.12+. A running Ollama (`ollama serve`) with the models pulled.
 ## The three commands you actually use
 
 ```bash
-# 1. Generate responses (resumable, streams to JSONL)
-uv run ethic run \
-    ~/Developer/mestrado/dada-pt-br/output/01-translated/20251101_014241Z_m_alert_tower_translated.json \
-    --sample-per-category 50 \
-    --num-parallel 4
+# Discover which datasets are on disk (respects ETHIC_DATASETS_DIR /
+# ETHIC_TRANSLATED_DIR; defaults point at your DADA-pt-br checkout).
+uv run ethic datasets
 
-# -> writes output/20260422_225109Z_m_alert_tower_translated.jsonl
+# 1. Generate responses (resumable, streams to JSONL).
+uv run ethic run <dataset.json> --sample-per-category 50 --num-parallel 4
+#   -> writes output/<timestamp>_<dataset>.jsonl
 
-# 2. Reclassify with an LLM-as-judge (can be re-run with a different
-#    judge-model without redoing the expensive generations)
-uv run ethic judge \
-    output/20260422_225109Z_m_alert_tower_translated.jsonl \
-    --judge-model qwen3.5:9b
+# 2. Reclassify with an LLM-as-judge (re-runnable with a different
+#    --judge-model without redoing the expensive generations).
+uv run ethic judge <output/...jsonl> --judge-model qwen3.5:9b
+#   -> writes <same path>.judged.jsonl
 
-# -> writes output/20260422_225109Z_m_alert_tower_translated.judged.jsonl
-
-# 3. Analyze
-uv run ethic analyze  output/20260422_225109Z_m_alert_tower_translated.judged.jsonl
-uv run ethic divergence output/20260422_225109Z_m_alert_tower_translated.judged.jsonl
+# 3. Analyze.
+uv run ethic analyze    <output/...judged.jsonl>
+uv run ethic divergence <output/...judged.jsonl>
 ```
 
 ## Primary dataset
 
 This project targets the **high-quality pt-br** slice of M-ALERT, produced
-by the Tower translator in DADA-pt-br:
+by the Tower translator in DADA-pt-br. The configured default for
+`ETHIC_TRANSLATED_DIR` points to that directory; `ethic datasets` lists
+what's available there.
 
-```
-~/Developer/mestrado/dada-pt-br/output/01-translated/20251101_014241Z_m_alert_tower_translated.json
-```
-
-14,763 prompts across 32 categories. `en` and `pt-br` side by side; we
-run on `pt-br` by default.
+That Tower file has 14,763 prompts across 32 categories with `en` and
+`pt-br` side by side; runs use `pt-br` by default.
 
 The other translations (e.g. gemma3gaia) and the English raw datasets
-(ALERT, AgentHarm) still load through the same loader, but the configured
-default language is `pt-br` and the README examples use the Tower file.
+(ALERT, AgentHarm) still load through the same unified loader. Only the
+**default language** is fixed at `pt-br`; override with `--language en`
+if you need the English side.
 
 Category distribution is heavily skewed (crime_injury=1798 vs
 hate_poor=101). Always prefer **`--sample-per-category N`** to
@@ -204,6 +200,8 @@ All settings overridable via env (`ETHIC_*`) or CLI flag:
 | Target models      | `-m/--model` (repeat)        | `gemma4:e4b, qwen3.5:9b, llama3.1:8b`  |
 | Judge model        | `ETHIC_JUDGE_MODEL`          | `qwen3.5:9b`                           |
 | Default language   | `ETHIC_DEFAULT_LANGUAGE`     | `pt-br`                                |
+| Datasets dir       | `ETHIC_DATASETS_DIR`         | `<DADA-pt-br>/datasets`                |
+| Translated dir     | `ETHIC_TRANSLATED_DIR`       | `<DADA-pt-br>/output/01-translated`    |
 | Output dir         | `ETHIC_OUTPUT_DIR`           | `output/`                              |
 | Parallel / model   | `--num-parallel`             | `4`                                    |
 | Temperature        | `ETHIC_TEMPERATURE`          | `0.1`                                  |
@@ -227,15 +225,16 @@ All settings overridable via env (`ETHIC_*`) or CLI flag:
 ```
 src/ethic_ai/
   config.py     Pydantic settings
-  schemas.py    HarmPrompt, ModelResponse
+  schemas.py    HarmPrompt, ModelResponse, JUDGE_LABELS
   datasets.py   Unified loader for all DADA shapes + stratified sampling
-  runner.py    async HTTP to Ollama, JSONL streaming, resume, heuristic
-  judge.py     LLM-as-judge rubric reclassifier
-  analyze.py   Stats + divergence inspection (heuristic or judge)
-  main.py      Typer CLI
+  jsonl.py      Shared JSONL I/O: line streaming + async bounded-concurrency writer
+  runner.py     Generation: async HTTP to Ollama, heuristic refusal flag
+  judge.py      LLM-as-judge rubric reclassifier
+  analyze.py    Stats + divergence inspection (heuristic or judge)
+  main.py       Typer CLI
 ```
 
-No base classes, no registries, no factories. Six small modules.
+No base classes, no registries, no factories. Seven small modules.
 
 ## Development
 

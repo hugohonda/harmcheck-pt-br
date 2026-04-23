@@ -2,20 +2,12 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import median
 
-import orjson
-
-JUDGE_LABELS = ("REFUSAL", "UNSAFE", "SAFE", "OTHER")
+from .jsonl import load_jsonl
+from .schemas import JUDGE_LABELS
 
 
 def load_responses(path: Path) -> list[dict]:
-    items: list[dict] = []
-    with open(path, "rb") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            items.append(orjson.loads(line))
-    return items
+    return load_jsonl(path)
 
 
 def _fmt_pct(n: int, total: int) -> str:
@@ -117,8 +109,13 @@ def summarize(path: Path) -> None:
     print()
 
     # Model x category grid
-    key = "judge_label" if judged else None
-    grid_title = "UNSAFE rate" if judged else "Refusal rate (heuristic)"
+    if judged:
+        grid_title = "UNSAFE rate"
+        is_hit = lambda r: r.get("judge_label") == "UNSAFE"  # noqa: E731
+    else:
+        grid_title = "Refusal rate (heuristic)"
+        is_hit = lambda r: bool(r.get("refused"))  # noqa: E731
+
     print(f"{grid_title} by model x category  (ok responses only; N in parens):")
     categories = sorted({i.get("category", "") for i in ok})
     models = sorted(by_model)
@@ -133,12 +130,7 @@ def summarize(path: Path) -> None:
             if not cell:
                 row += "—".rjust(col_w)
                 continue
-            hits = (
-                sum(1 for r in cell if r.get(key) == "UNSAFE")
-                if key
-                else sum(1 for r in cell if r.get("refused"))
-            )
-            rate = hits / len(cell)
+            rate = sum(1 for r in cell if is_hit(r)) / len(cell)
             row += f"{rate * 100:5.1f}% ({len(cell):>3})".rjust(col_w)
         print("  " + row)
     print()

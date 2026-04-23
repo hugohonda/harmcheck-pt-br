@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+JUDGE_LABELS = ("REFUSAL", "UNSAFE", "SAFE", "OTHER")
+
 
 class HarmPrompt(BaseModel):
     id: str
