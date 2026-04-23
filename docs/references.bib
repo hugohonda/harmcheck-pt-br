@@ -1,0 +1,325 @@
+% References compiled from the SOTA 2025-2026 discussion on efficient
+% safety benchmarking and red-teaming for ethic-ai.
+%
+% NOTE: arXiv IDs were confirmed via web search; venue and author lists
+% were taken from the sources returned at search time. Verify author
+% order and year once more against the canonical arXiv/venue page
+% before final submission — some arXiv preprints were updated after the
+% cited version.
+
+% =====================================================================
+% Efficient subsampling / item response theory
+% =====================================================================
+
+@misc{polo2024tinybenchmarks,
+  title        = {{tinyBenchmarks}: evaluating {LLMs} with fewer examples},
+  author       = {Polo, Felipe Maia and Weber, Lucas and Choshen, Leshem and Sun, Yuekai and Xu, Gongjun and Yurochkin, Mikhail},
+  year         = {2024},
+  eprint       = {2402.14992},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2402.14992}
+}
+
+@misc{lost2025irt,
+  title        = {Lost in Benchmarks? {R}ethinking Large Language Model Benchmarking with Item Response Theory},
+  author       = {{Anonymous}},
+  year         = {2025},
+  eprint       = {2505.15055},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2505.15055},
+  note         = {Author list to be verified from the arXiv page.}
+}
+
+@inproceedings{li2025active,
+  title        = {Active Evaluation Acquisition for Efficient {LLM} Benchmarking},
+  author       = {Li, Yang and others},
+  booktitle    = {Proceedings of the 42nd International Conference on Machine Learning (ICML)},
+  year         = {2025},
+  eprint       = {2410.05952},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2410.05952},
+  note         = {Confirm full author list on the ICML proceedings page.}
+}
+
+@misc{adaptive2025psychometric,
+  title        = {Adaptive Testing for {LLM} Evaluation: A Psychometric Alternative to Static Benchmarks},
+  author       = {{Anonymous}},
+  year         = {2025},
+  eprint       = {2511.04689},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2511.04689},
+  note         = {Author list to be verified.}
+}
+
+@inproceedings{boyeau2024precise,
+  title        = {Precise Model Benchmarking with Only a Few Observations},
+  author       = {Boyeau, Pierre and others},
+  booktitle    = {Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  year         = {2024},
+  url          = {https://aclanthology.org/2024.emnlp-main.536/},
+  note         = {Confirm full author list on the ACL Anthology page.}
+}
+
+% =====================================================================
+% LLM-as-judge / safety classifiers
+% =====================================================================
+
+@inproceedings{kumar2025polyguard,
+  title        = {{PolyGuard}: A Multilingual Safety Moderation Tool for 17 Languages},
+  author       = {Kumar, Priyanshu and others},
+  booktitle    = {Conference on Language Modeling (COLM)},
+  year         = {2025},
+  eprint       = {2504.04377},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2504.04377}
+}
+
+@misc{qwen2025qwen3guard,
+  title        = {{Qwen3Guard} Technical Report},
+  author       = {{Qwen Team}},
+  year         = {2025},
+  month        = oct,
+  eprint       = {2510.14276},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2510.14276}
+}
+
+@misc{meta2024llamaguard3,
+  title        = {{Llama Guard 3}: {M}ultilingual Input/Output Safety Classifier},
+  author       = {{Meta}},
+  year         = {2024},
+  howpublished = {Hugging Face model card},
+  url          = {https://huggingface.co/meta-llama/Llama-Guard-3-8B}
+}
+
+@misc{li2024llmjudges,
+  title        = {{LLMs}-as-{J}udges: A Comprehensive Survey on {LLM}-based Evaluation Methods},
+  author       = {Li, Haitao and others},
+  year         = {2024},
+  eprint       = {2412.05579},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2412.05579},
+  note         = {Companion GitHub: https://github.com/CSHaitao/Awesome-LLMs-as-Judges}
+}
+
+% =====================================================================
+% Multilingual / cross-lingual safety benchmarks
+% =====================================================================
+
+@inproceedings{friedrich2025malert,
+  title        = {{LLM}s Lost in Translation: {M-ALERT} uncovers Cross-Linguistic Safety Inconsistencies},
+  author       = {Friedrich, Felix and others},
+  booktitle    = {International Conference on Learning Representations (ICLR)},
+  year         = {2025},
+  eprint       = {2412.15035},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2412.15035}
+}
+
+@misc{tedeschi2024alert,
+  title        = {{ALERT}: A Comprehensive Benchmark for Assessing Large Language Models' Safety through Red Teaming},
+  author       = {Tedeschi, Simone and others},
+  year         = {2024},
+  eprint       = {2404.08676},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2404.08676},
+  note         = {Repository: https://github.com/Babelscape/ALERT}
+}
+
+@inproceedings{deng2024multilingual,
+  title        = {Multilingual Jailbreak Challenges in Large Language Models},
+  author       = {Deng, Yue and others},
+  booktitle    = {International Conference on Learning Representations (ICLR)},
+  year         = {2024},
+  eprint       = {2310.06474},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2310.06474},
+  note         = {Repository: https://github.com/DAMO-NLP-SG/multilingual-safety-for-LLMs}
+}
+
+@misc{yong2023lowresource,
+  title        = {Low-Resource Languages Jailbreak {GPT-4}},
+  author       = {Yong, Zheng-Xin and Menghini, Cristina and Bach, Stephen H.},
+  year         = {2023},
+  eprint       = {2310.02446},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2310.02446}
+}
+
+@misc{welo2025translation,
+  title        = {The Hidden Flaw in {LLM} Safety: Translation as a Jailbreak},
+  author       = {{Welo Data}},
+  year         = {2025},
+  month        = dec,
+  howpublished = {Blog post},
+  url          = {https://welodata.ai/2025/12/10/the-hidden-flaw-in-llm-safety-translation-as-a-jailbreak/}
+}
+
+% =====================================================================
+% Statistical rigor
+% =====================================================================
+
+@misc{miller2025clt,
+  title        = {Position: {D}on't Use the {CLT} in {LLM} Evals With Fewer Than a Few Hundred Datapoints},
+  author       = {Miller, Sam},
+  year         = {2025},
+  eprint       = {2503.01747},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  url          = {https://arxiv.org/abs/2503.01747},
+  note         = {Author to be verified on the arXiv page; single-author position paper.}
+}
+
+@misc{llmsafety2025robustness,
+  title        = {{LLM}-Safety Evaluations Lack Robustness},
+  author       = {{Anonymous}},
+  year         = {2025},
+  eprint       = {2503.02574},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2503.02574},
+  note         = {Author list to be verified.}
+}
+
+% =====================================================================
+% Jailbreak / red-team datasets
+% =====================================================================
+
+@inproceedings{chao2024jailbreakbench,
+  title        = {{JailbreakBench}: An Open Robustness Benchmark for Jailbreaking Large Language Models},
+  author       = {Chao, Patrick and Debenedetti, Edoardo and Robey, Alexander and Andriushchenko, Maksym and Croce, Francesco and Sehwag, Vikash and Dobriban, Edgar and Flammarion, Nicolas and Pappas, George J. and Tram{\`e}r, Florian and Hassani, Hamed and Wong, Eric},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track},
+  year         = {2024},
+  eprint       = {2404.01318},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2404.01318},
+  note         = {Project site: https://jailbreakbench.github.io/}
+}
+
+@inproceedings{mazeika2024harmbench,
+  title        = {{HarmBench}: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal},
+  author       = {Mazeika, Mantas and Phan, Long and Yin, Xuwang and Zou, Andy and Wang, Zifan and Mu, Norman and Sakhaee, Elham and Li, Nathaniel and Basart, Steven and Li, Bo and Forsyth, David and Hendrycks, Dan},
+  booktitle    = {Proceedings of the 41st International Conference on Machine Learning (ICML)},
+  year         = {2024},
+  eprint       = {2402.04249},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2402.04249}
+}
+
+@inproceedings{han2024wildguard,
+  title        = {{WildGuard}: Open One-Stop Moderation Tools for Safety Risks, Jailbreaks, and Refusals of {LLMs}},
+  author       = {Han, Seungju and Rao, Kavel and Ettinger, Allyson and Jiang, Liwei and Lin, Bill Yuchen and Lambert, Nathan and Choi, Yejin and Dziri, Nouha},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track},
+  year         = {2024},
+  eprint       = {2406.18495},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2406.18495}
+}
+
+% =====================================================================
+% Over-refusal / calibration counter-benchmarks
+% =====================================================================
+
+@inproceedings{cui2025orbench,
+  title        = {{OR-Bench}: An Over-Refusal Benchmark for Large Language Models},
+  author       = {Cui, Justin and Chiang, Wei-Lin and Stoica, Ion and Jia, Jinyuan},
+  booktitle    = {Proceedings of the 42nd International Conference on Machine Learning (ICML)},
+  year         = {2025},
+  eprint       = {2405.20947},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2405.20947},
+  note         = {Repository: https://github.com/justincui03/or-bench}
+}
+
+@inproceedings{rottger2024xstest,
+  title        = {{XSTest}: A Test Suite for Identifying Exaggerated Safety Behaviours in Large Language Models},
+  author       = {R{\"o}ttger, Paul and Kirk, Hannah Rose and Vidgen, Bertie and Attanasio, Giuseppe and Bianchi, Federico and Hovy, Dirk},
+  booktitle    = {Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL)},
+  year         = {2024},
+  eprint       = {2308.01263},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2308.01263}
+}
+
+% =====================================================================
+% Automated jailbreak attackers (black-box)
+% =====================================================================
+
+@misc{chao2023pair,
+  title        = {Jailbreaking Black Box Large Language Models in Twenty Queries},
+  author       = {Chao, Patrick and Robey, Alexander and Dobriban, Edgar and Hassani, Hamed and Pappas, George J. and Wong, Eric},
+  year         = {2023},
+  eprint       = {2310.08419},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  url          = {https://arxiv.org/abs/2310.08419}
+}
+
+@inproceedings{mehrotra2024tap,
+  title        = {Tree of Attacks: Jailbreaking Black-Box {LLMs} Automatically},
+  author       = {Mehrotra, Anay and Zampetakis, Manolis and Kassianik, Paul and Nelson, Blaine and Anderson, Hyrum and Singer, Yaron and Karbasi, Amin},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year         = {2024},
+  eprint       = {2312.02119},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2312.02119},
+  note         = {Reference implementation: https://github.com/RICommunity/TAP}
+}
+
+@misc{crossbehavior2025,
+  title        = {Effective and Efficient Jailbreaks of Black-Box {LLM}s with Cross-Behavior Attacks},
+  author       = {{Anonymous}},
+  year         = {2025},
+  eprint       = {2503.08990},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2503.08990},
+  note         = {Author list to be verified.}
+}
+
+@inproceedings{zeng2024persuasion,
+  title        = {How Johnny Can Persuade {LLMs} to Jailbreak Them: Rethinking Persuasion to Challenge {AI} Safety by Humanizing {LLMs}},
+  author       = {Zeng, Yi and Lin, Hongpeng and Zhang, Jingwen and Yang, Diyi and Jia, Ruoxi and Shi, Weiyan},
+  booktitle    = {Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (ACL)},
+  year         = {2024},
+  eprint       = {2401.06373},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2401.06373}
+}
+
+% =====================================================================
+% Tooling / software
+% =====================================================================
+
+@misc{garak,
+  title        = {{garak}: A Framework for Large Language Model Vulnerability Scanning},
+  author       = {Derczynski, Leon and others},
+  year         = {2024},
+  howpublished = {Software},
+  url          = {https://reference.garak.ai/},
+  note         = {TAP probe documentation: https://reference.garak.ai/en/latest/garak.probes.tap.html}
+}
+
+@misc{safetyprompts,
+  title        = {{SafetyPrompts}: A Systematic Review of Open Datasets for Evaluating and Improving Large Language Model Safety},
+  author       = {R{\"o}ttger, Paul and others},
+  year         = {2024},
+  howpublished = {Living catalogue},
+  url          = {https://safetyprompts.com/}
+}
+
+@misc{redhat2025ollamavllm,
+  title        = {{Ollama} vs. {vLLM}: A Deep Dive into Performance Benchmarking},
+  author       = {{Red Hat}},
+  year         = {2025},
+  month        = aug,
+  howpublished = {Red Hat Developer blog},
+  url          = {https://developers.redhat.com/articles/2025/08/08/ollama-vs-vllm-deep-dive-performance-benchmarking}
+}
